@@ -52,10 +52,12 @@ install.packages(c("readxl", "ggplot2", "viridis"))
 
 ## How to Run
 1. Download or clone this repository.
-2. Open the main R script in RStudio.
-3. Ensure that the required packages are installed.
-4. Make the input dataset available at the file location specified in the script.
-5. Run the script.
+2. Open forest_stakeholder_analysis.R in RStudio.
+3. Install the required R packages if they are not already installed.
+4. Run the script. When prompted, select the Excel input file containing the required dataset.
+5. Ensure that the selected Excel file contains a worksheet named 96 مقایسه زوجی and all required columns.
+6. Follow the script execution and review the generated statistical outputs.
+Note: The respondent-level dataset is not included in this repository due to ethical and consent-related restrictions. Users must have authorised access to the dataset to reproduce the analyses.
 
 ## Data Availability
 The respondent-level dataset is not publicly available due to ethical and consent-related restrictions. Data access may be considered upon reasonable request to the corresponding author, subject to applicable ethical and institutional conditions.
