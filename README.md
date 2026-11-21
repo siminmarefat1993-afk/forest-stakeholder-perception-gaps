@@ -27,7 +27,13 @@ The analyses include:
 - Heatmap visualisation of stakeholder perception patterns.
 
 Repository Structure
-The main R analysis script is located in the root directory of this repository.
+The repository is organised as follows:
+
+forest-stakeholder-perception-gaps/
+├── README.md
+├── .gitignore
+├── forest-stakeholder-perception-gaps.Rproj
+└── forest_stakeholder_analysis.R
 
 Software Requirements
 The analysis was conducted using R version 4.5.2.
