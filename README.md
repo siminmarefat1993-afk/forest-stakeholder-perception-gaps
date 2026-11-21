@@ -1,11 +1,11 @@
-Stakeholder Perception Gaps in Forest Governance
+# Stakeholder Perception Gaps in Forest Governance
 
-Overview
+## Overview
 This repository contains the R code used for the statistical analysis of stakeholder perception gaps regarding forest governance conflicts in the Arasbaran forests, northwestern Iran.
 
 The study examines differences in perceptions among four stakeholder groups across 16 forest governance conflict issues.
 
-Study Population and Data
+## Study Population and Data
 The study includes 482 respondents from four stakeholder groups:
 
 - Local residents: 387
@@ -26,7 +26,7 @@ The analyses include:
 - Mean-rank summaries to examine the direction of differences.
 - Heatmap visualisation of stakeholder perception patterns.
 
-Repository Structure
+## Repository Structure
 The repository is organised as follows:
 
 forest-stakeholder-perception-gaps/
@@ -35,7 +35,7 @@ forest-stakeholder-perception-gaps/
 ├── forest-stakeholder-perception-gaps.Rproj
 └── forest_stakeholder_analysis.R
 
-Software Requirements
+## Software Requirements
 The analysis was conducted using R version 4.5.2.
 
 Required packages:
@@ -50,24 +50,24 @@ Install the required packages using:
 install.packages(c("readxl", "ggplot2", "viridis"))
 ```
 
-How to Run
+## How to Run
 1. Download or clone this repository.
 2. Open the main R script in RStudio.
 3. Ensure that the required packages are installed.
 4. Make the input dataset available at the file location specified in the script.
 5. Run the script.
 
-Data Availability
+## Data Availability
 The respondent-level dataset is not publicly available due to ethical and consent-related restrictions. Data access may be considered upon reasonable request to the corresponding author, subject to applicable ethical and institutional conditions.
 
-Reproducibility
+## Reproducibility
 The analysis code and statistical procedures are provided to support transparency and reproducibility of the reported results.
 
-Manuscript Status
+## Manuscript Status
 Manuscript in preparation.
 
-Citation
+## Citation
 A full citation will be added after publication.
 
-Contact
+## Contact
 For questions about the code or data availability, please contact the corresponding author.
