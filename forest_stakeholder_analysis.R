@@ -11,17 +11,12 @@ results <- sapply(packages, function(pkg) {
 })
 
 print(results)
-________________________________________
+
 library(readxl)
 
-file_path <- "J:/Ph.D/مقاله اول مستخرج از رساله/New folder/Dr. Hosseinzadeh/New folder/R/Data 1.xlsx"
+file_path <- file.choose()
 
 file.exists(file_path)
-________________________________________
-file_path <- "J:/Ph.D/مقاله اول مستخرج از رساله/New folder/Dr. Hosseinzadeh/New folder/R/Data 1.xlsx"
-
-file.exists(file_path)
-________________________________________
 library(readxl)
 
 Data_1 <- read_excel(file_path)
@@ -29,7 +24,7 @@ Data_1 <- read_excel(file_path)
 dim(Data_1)
 names(Data_1)
 head(Data_1, 3)
-________________________________________
+
 # 1. بررسی تعداد پاسخ‌دهندگان هر گروه
 table(Data_1$Groups, useNA = "ifany")
 
@@ -48,7 +43,7 @@ lapply(Data_1[items], function(x) {
 
 # 5. بررسی خلاصه آماری گویه‌ها
 summary(Data_1[items])
-________________________________________
+
 # تعداد افراد در هر گروه
 table(Data_1$Groups, useNA = "ifany")
 
@@ -64,7 +59,7 @@ items <- paste0("C", 1:16)
 sapply(Data_1[items], function(x) {
   sum(!is.na(x) & !(x %in% 1:5))
 })
-________________________________________
+
 # آزمون کروسکال والیس برای 16 تعارض
 
 items <- paste0("C", 1:16)
@@ -82,7 +77,7 @@ kw_results <- lapply(items, function(item) {
   
   data.frame(
     Conflict = item,
-    N = nrow(Data_1),
+    N = sum(complete.cases(Data_1[, c(item, "Groups")])),
     H = unname(test$statistic),
     df = unname(test$parameter),
     p_value = test$p.value
@@ -104,7 +99,7 @@ writexl::write_xlsx(
   kw_results,
   "Kruskal_Wallis_Results.xlsx"
 )
-________________________________________
+
 # مقایسه‌های زوجی من ویتنی
 items <- paste0("C", 1:16)
 
@@ -120,8 +115,8 @@ for (item in items) {
     g1 <- pair[1]
     g2 <- pair[2]
     
-    x <- Data_1[Data_1$Groups == g1, item][[1]]
-    y <- Data_1[Data_1$Groups == g2, item][[1]]
+    x <- na.omit(Data_1[Data_1$Groups == g1, item][[1]])
+    y <- na.omit(Data_1[Data_1$Groups == g2, item][[1]])
     
     test <- wilcox.test(
       x, y,
@@ -185,10 +180,11 @@ writexl::write_xlsx(
   pair_results,
   "Pairwise_Mann_Whitney_Results.xlsx"
 )
-________________________________________
+
 items <- paste0("C", 1:16)
 group_pairs <- combn(sort(unique(Data_1$Groups)), 2,
                      simplify = FALSE)
+stopifnot(length(unique(Data_1$Groups)) == 4)
 
 pair_results <- list()
 k <- 1
@@ -199,8 +195,8 @@ for (item in items) {
     g1 <- pair[1]
     g2 <- pair[2]
     
-    x <- Data_1[Data_1$Groups == g1, item][[1]]
-    y <- Data_1[Data_1$Groups == g2, item][[1]]
+    x <- na.omit(Data_1[Data_1$Groups == g1, item][[1]])
+    y <- na.omit(Data_1[Data_1$Groups == g2, item][[1]])
     
     n1 <- length(x)
     n2 <- length(y)
@@ -226,8 +222,11 @@ for (item in items) {
     
     var_U <- (n1 * n2 / 12) *
       ((N + 1) - tie_term / (N * (N - 1)))
+    if (!is.finite(var_U) || var_U <= 0) {
+      stop("Invalid variance for item: ", item, " and groups: ", g1, " vs ", g2)
+    }
     
-    z_abs <- abs(U - n1 * n2 / 2) / sqrt(var_U)
+    z_abs <- abs(U - (n1 * n2 / 2)) / sqrt(var_U)
     z_signed <- if (rank1 >= rank2) z_abs else -z_abs
     
     pair_results[[k]] <- data.frame(
@@ -249,6 +248,7 @@ for (item in items) {
 }
 
 pair_results <- do.call(rbind, pair_results)
+stopifnot(nrow(pair_results) == 96)
 
 pair_results$p_bonferroni <- ave(
   pair_results$p_raw,
@@ -273,7 +273,7 @@ nrow(pair_results)
 # تعداد مقایسه‌های معنادار پس از هر اصلاح
 sum(pair_results$p_bonferroni < 0.05)
 sum(pair_results$p_holm < 0.05)
-________________________________________
+
 
 group_summary <- aggregate(
   cbind(
@@ -288,7 +288,7 @@ group_summary <- aggregate(
 )
 
 print(group_summary, row.names = FALSE)
-________________________________________
+
 
 holm_only <- subset(
   pair_results,
@@ -305,7 +305,7 @@ holm_only <- holm_only[
 ]
 
 print(holm_only, row.names = FALSE, digits = 5)
-________________________________________
+
 
 # نام گروه‌ها
 group_labels <- c(
@@ -389,7 +389,7 @@ writexl::write_xlsx(
   results_sorted,
   "All_96_Pairwise_Comparisons_Sorted.xlsx"
 )
-________________________________________
+
 
 
 bonf_significant <- subset(
@@ -417,7 +417,7 @@ writexl::write_xlsx(
   bonf_significant,
   "Bonferroni_Significant_Comparisons.xlsx"
 )
-________________________________________
+
 
 top_significant <- subset(
   results_sorted,
@@ -445,7 +445,7 @@ writexl::write_xlsx(
   top_significant,
   "Top_15_Significant_Effects.xlsx"
 )
-________________________________________
+
 
 library(dplyr)
 library(writexl)
@@ -507,7 +507,7 @@ write_xlsx(
   conflict_summary,
   "Conflict_Level_Summary.xlsx"
 )
-________________________________________
+
 
 library(dplyr)
 library(ggplot2)
@@ -551,88 +551,6 @@ pair_order <- c(
 heatmap_data <- heatmap_data %>%
   mutate(Pair = factor(Pair, levels = pair_order))
 
-# رسم نقشه حرارتی
-p_heatmap <- ggplot(
-  heatmap_data,
-  aes(x = Pair, y = Conflict, fill = Direction)
-) +
-  geom_tile(color = "white", linewidth = 0.6) +
-  geom_text(
-    aes(label = Cell_Label),
-    size = 3.2
-  ) +
-  scale_fill_manual(
-    values = c(
-      "غیرمعنادار" = "grey85",
-      "مردم محلی رتبه بالاتر" = "#2878B5",
-      "کارشناسان دولتی رتبه بالاتر" = "#D95F02",
-      "سازمان‌های مردم‌نهاد رتبه بالاتر" = "#1B9E77",
-      "دانشگاهیان و پژوهشگران رتبه بالاتر" = "#8E63B6",
-      "رتبه برابر" = "grey85"
-    ),
-    name = "نتیجه مقایسه",
-    na.value = "grey85"
-  ) +
-  labs(
-    title = "نقشه حرارتی شکاف‌های ادراکی میان گروه‌های ذی‌نفع",
-    subtitle = "ستاره نشان‌دهنده معناداری پس از اصلاح بونفرونی است؛ عدد داخل خانه اندازه اثر را نشان می‌دهد",
-    x = "مقایسه گروه‌ها",
-    y = "تعارض"
-  ) +
-  theme_minimal(base_size = 11) +
-  theme(
-    axis.text.x = element_text(
-      angle = 45,
-      hjust = 1,
-      vjust = 1
-    ),
-    panel.grid = element_blank(),
-    legend.position = "bottom",
-    plot.title = element_text(face = "bold"),
-    axis.text.y = element_text(size = 9)
-  )
-
-print(p_heatmap)
-
-# ذخیره تصویر با وضوح مناسب برای مقاله
-ggsave(
-  filename = "Perception_Gap_Heatmap.png",
-  plot = p_heatmap,
-  width = 12,
-  height = 8,
-  dpi = 300,
-  bg = "white"
-)
-________________________________________
-
-
-dev.new()
-print(p_heatmap)
-________________________________________
-
-getwd()
-
-file.exists("Perception_Gap_Heatmap.png")
-
-normalizePath("Perception_Gap_Heatmap.png")
-________________________________________
-png(
-  filename = file.path(getwd(), "Perception_Gap_Heatmap.png"),
-  width = 3600,
-  height = 2400,
-  res = 300
-)
-
-print(p_heatmap)
-
-dev.off()
-________________________________________
-
-shell.exec(normalizePath("Perception_Gap_Heatmap.png"))
-________________________________________
-
-getwd()
-________________________________________
 
 library(dplyr)
 library(ggplot2)
@@ -730,12 +648,12 @@ p_heatmap_en <- ggplot(
     x = "Stakeholder group comparison",
     y = "Conflict"
   ) +
-  theme_minimal(base_size = 11) +
+  theme_minimal(base_size = 16) +
   theme(
     axis.text.x = element_text(
-      angle = 40, hjust = 1, vjust = 1
+      angle = 40, hjust = 0.5, vjust = 1
     ),
-    axis.text.y = element_text(size = 8.5),
+    axis.text.y = element_text(size = 22),
     panel.grid = element_blank(),
     legend.position = "bottom",
     plot.title = element_text(face = "bold"),
@@ -756,9 +674,9 @@ ggsave(
   width = 14, height = 9,
   device = cairo_pdf, bg = "white"
 )
-________________________________________
+
 names(results_sorted)
-________________________________________
+
 library(dplyr)
 
 heatmap_data_en <- results_sorted %>%
@@ -792,7 +710,7 @@ heatmap_data_en <- results_sorted %>%
       ""
     )
   )
-________________________________________
+
 
 
 conflict_labels <- c(
@@ -813,13 +731,9 @@ conflict_labels <- c(
   "C15" = "احداث بزرگراه و جاده‌های درجه یک",
   "C16" = "توسعه گردشگری"
 )
-________________________________________
 
-scale_y_discrete(
-  labels = conflict_labels,
-  drop = FALSE
-) +
-  ________________________________________
+
+
 
 ggplot2::ggsave(
   filename = "Perception_Gap_Heatmap.png",
@@ -837,18 +751,18 @@ ggplot2::ggsave(
   height = 10,
   bg = "white"
 )
-________________________________________
+
 
 getwd()
 file.exists("Perception_Gap_Heatmap.png")
 file.exists("Perception_Gap_Heatmap.pdf")
-________________________________________
+
 shell.exec(
   normalizePath(
     file.path(getwd(), "Perception_Gap_Heatmap.png")
   )
 )
-________________________________________
+
 
 
 library(ggplot2)
@@ -876,67 +790,23 @@ pair_order <- c(
 )
 
 # آماده‌سازی داده‌ها
+
+# آماده‌سازی داده‌ها
 heatmap_data <- results_sorted %>%
   mutate(
-    Group1_English = unname(group_labels[Group1_Name]),
-    Group2_English = unname(group_labels[Group2_Name]),
-    
-    Pair = case_when(
-      Group1_English == "Local residents" &
-        Group2_English == "Government experts" |
-        Group2_English == "Local residents" &
-        Group1_English == "Government experts" ~
-        pair_order[1],
-      
-      Group1_English == "Local residents" &
-        Group2_English == "NGO members" |
-        Group2_English == "Local residents" &
-        Group1_English == "NGO members" ~
-        pair_order[2],
-      
-      Group1_English == "Local residents" &
-        Group2_English == "Academics" |
-        Group2_English == "Local residents" &
-        Group1_English == "Academics" ~
-        pair_order[3],
-      
-      Group1_English == "Government experts" &
-        Group2_English == "NGO members" |
-        Group2_English == "Government experts" &
-        Group1_English == "NGO members" ~
-        pair_order[4],
-      
-      Group1_English == "Government experts" &
-        Group2_English == "Academics" |
-        Group2_English == "Government experts" &
-        Group1_English == "Academics" ~
-        pair_order[5],
-      
-      Group1_English == "NGO members" &
-        Group2_English == "Academics" |
-        Group2_English == "NGO members" &
-        Group1_English == "Academics" ~
-        pair_order[6],
-      
-      TRUE ~ NA_character_
-    ),
-    
+    Pair = paste(Group1_Name, Group2_Name, sep = " | "),
     Pair = factor(Pair, levels = pair_order),
-    
     Conflict = factor(
       as.character(Conflict),
       levels = rev(paste0("C", 1:16))
     ),
-    
     Significant = !is.na(p_bonferroni) &
       p_bonferroni < 0.05,
-    
     Plot_Effect = ifelse(
       Significant,
       Effect_r,
       NA_real_
     ),
-    
     Cell_Label = ifelse(
       Significant,
       paste0(sprintf("%.2f", Effect_r), "*"),
@@ -944,188 +814,48 @@ heatmap_data <- results_sorted %>%
     )
   )
 
-# بررسی نام گروه‌ها و مقایسه‌های شناسایی‌نشده
-if (any(is.na(heatmap_data$Pair))) {
-  print(
-    unique(
-      results_sorted[
-        is.na(
-          match(
-            paste(results_sorted$Group1_Name,
-                  results_sorted$Group2_Name),
-            paste(results_sorted$Group1_Name,
-                  results_sorted$Group2_Name)
-          )
-        ),
-        c("Group1_Name", "Group2_Name")
-      ]
-    )
-  )
-  
-  if (any(is.na(heatmap_data$Group1_English)) ||
-      any(is.na(heatmap_data$Group2_English))) {
-    stop(
-      "نام یکی از گروه‌ها با برچسب‌های تعریف‌شده مطابقت ندارد. ",
-      "مقادیر Group1_Name و Group2_Name را بررسی کنید."
-    )
-  }
-  
-  stop(
-    "برخی مقایسه‌های زوجی شناسایی نشدند. ",
-    "نام گروه‌ها را بررسی کنید."
-  )
-}
 
-# رسم نقشه حرارتی
-p_heatmap <- ggplot(
-  heatmap_data,
-  aes(x = Pair, y = Conflict, fill = Plot_Effect)
-) +
-  geom_tile(
-    color = "white",
-    linewidth = 0.35
-  ) +
-  geom_text(
-    aes(label = Cell_Label),
-    family = "Times New Roman",
-    size = 4.2,
-    color = "black"
-  ) +
-  scale_x_discrete(
-    limits = pair_order,
-    drop = FALSE
-  ) +
-  scale_y_discrete(
-    limits = rev(paste0("C", 1:16)),
-    drop = FALSE
-  ) +
-  scale_fill_viridis_c(
-    option = "viridis",
-    limits = c(0, 0.75),
-    breaks = seq(0, 0.7, by = 0.1),
-    na.value = "white",
-    name = "Effect size (r)"
-  ) +
-  labs(
-    title = paste(
-      "Heat map of stakeholder perception-gap",
-      "effect sizes after Bonferroni correction"
-    ),
-    x = "Stakeholder-pair comparisons",
-    y = "Conflict issue code"
-  ) +
-  theme_minimal(
-    base_family = "Times New Roman",
-    base_size = 11
-  ) +
-  theme(
-    plot.title = element_text(
-      family = "Times New Roman",
-      face = "bold",
-      size = 15,
-      color = "black",
-      hjust = 0.5
-    ),
-    axis.title = element_text(
-      family = "Times New Roman",
-      size = 11,
-      color = "black"
-    ),
-    axis.text.x = element_text(
-      family = "Times New Roman",
-      size = 10,
-      color = "black",
-      angle = 25,
-      hjust = 1,
-      vjust = 1
-    ),
-    axis.text.y = element_text(
-      family = "Times New Roman",
-      size = 10,
-      color = "black"
-    ),
-    legend.title = element_text(
-      family = "Times New Roman",
-      size = 11,
-      color = "black"
-    ),
-    legend.text = element_text(
-      family = "Times New Roman",
-      size = 10,
-      color = "black"
-    ),
-    panel.grid = element_blank(),
-    legend.position = "right",
-    plot.background = element_rect(
-      fill = "white",
-      color = NA
-    ),
-    panel.background = element_rect(
-      fill = "white",
-      color = NA
-    ),
-    plot.margin = margin(10, 15, 10, 10)
-  )
-
-# نمایش نقشه
-print(p_heatmap)
-
-# ذخیره در قالب PNG با وضوح مناسب مقاله
-output_png <- file.path(
-  getwd(),
-  "Stakeholder_Perception_Gap_Heatmap.png"
-)
-
-ggsave(
-  filename = output_png,
-  plot = p_heatmap,
-  width = 15,
-  height = 8.5,
-  units = "in",
-  dpi = 300,
-  bg = "white"
-)
-
-# نمایش مسیر و بررسی ذخیره
-print(output_png)
-print(file.exists(output_png))
-________________________________________
-warnings()
-________________________________________
-
-shell.exec(
-  "C:/Users/2024/Documents/Stakeholder_Perception_Gap_Heatmap.png"
-)
-________________________________________
-install.packages(c("showtext", "sysfonts", "ragg"))	
-________________________________________
+# ============================================================
+# FINAL ENGLISH PUBLICATION-READY HEATMAP
+# ============================================================
 
 library(ggplot2)
 library(showtext)
 library(sysfonts)
 library(ragg)
 
-# مسیر قلم Times New Roman در ویندوز
+# ------------------------------------------------------------
+# 1. Times New Roman font
+# ------------------------------------------------------------
+
 font_regular <- "C:/Windows/Fonts/times.ttf"
 font_bold <- "C:/Windows/Fonts/timesbd.ttf"
 
 if (!file.exists(font_regular) || !file.exists(font_bold)) {
-  stop(
-    "فایل‌های قلم Times New Roman در مسیر پیش‌فرض ویندوز پیدا نشدند. ",
-    "مسیر نصب قلم را بررسی کنید."
-  )
+  stop("Times New Roman font files were not found.")
 }
 
-# ثبت قلم برای خروجی
 sysfonts::font_add(
   family = "Times New Roman",
   regular = font_regular,
   bold = font_bold
 )
 
-showtext::showtext_auto(enable = TRUE)
+showtext::showtext_auto(enable = FALSE)
 
-# برچسب‌های مقایسه زوجی با شکست خط مشخص
+# ------------------------------------------------------------
+# 2. English stakeholder comparison labels
+# ------------------------------------------------------------
+
+pair_order <- c(
+  "مردم محلی | کارشناسان دولتی",
+  "مردم محلی | سازمان‌های مردم‌نهاد",
+  "مردم محلی | دانشگاهیان و پژوهشگران",
+  "کارشناسان دولتی | سازمان‌های مردم‌نهاد",
+  "کارشناسان دولتی | دانشگاهیان و پژوهشگران",
+  "سازمان‌های مردم‌نهاد | دانشگاهیان و پژوهشگران"
+)
+
 pair_labels <- c(
   "Local residents\nvs government\nexperts",
   "Local residents\nvs NGO\nmembers",
@@ -1135,18 +865,90 @@ pair_labels <- c(
   "NGO members\nvs academics"
 )
 
-# اعمال تنظیمات خوانایی بر نقشه موجود
-p_publication <- p_heatmap +
+# ------------------------------------------------------------
+# 3. Check existing plotting data
+# No statistical calculations are performed here.
+# ------------------------------------------------------------
+
+required_columns <- c(
+  "Pair",
+  "Conflict",
+  "Plot_Effect",
+  "Cell_Label"
+)
+
+if (!all(required_columns %in% names(heatmap_data))) {
+  stop("Required columns are missing from heatmap_data.")
+}
+
+heatmap_data$Pair <- factor(
+  as.character(heatmap_data$Pair),
+  levels = pair_order
+)
+
+heatmap_data$Conflict <- factor(
+  as.character(heatmap_data$Conflict),
+  levels = rev(paste0("C", 1:16))
+)
+
+# ------------------------------------------------------------
+# 4. Create the English heatmap
+# ------------------------------------------------------------
+
+p_publication <- ggplot(
+  heatmap_data,
+  aes(
+    x = Pair,
+    y = Conflict,
+    fill = Plot_Effect
+  )
+) +
+  
+  geom_tile(
+    color = "white",
+    linewidth = 0.45
+  ) +
+  
+  geom_text(
+    aes(label = Cell_Label),
+    family = "Times New Roman",
+    size = 12,
+    color = "black"
+  ) +
+  
   scale_x_discrete(
-    breaks = pair_order,
-    labels = pair_labels,
     limits = pair_order,
+    labels = setNames(pair_labels, pair_order),
     drop = FALSE
   ) +
+  
+  scale_y_discrete(
+    limits = rev(paste0("C", 1:16)),
+    drop = FALSE
+  ) +
+  
+  scale_fill_viridis_c(
+    option = "viridis",
+    limits = c(0, 0.75),
+    breaks = seq(0, 0.7, by = 0.1),
+    na.value = "white",
+    name = "Effect size (r)"
+  ) +
+  
+  labs(
+    title = paste(
+      "Heat map of stakeholder perception-gap",
+      "effect sizes after Bonferroni correction"
+    ),
+    x = "Stakeholder-pair comparisons",
+    y = "Conflict issue code"
+  ) +
+  
   theme_minimal(
     base_family = "Times New Roman",
-    base_size = 10
+    base_size = 20
   ) +
+  
   theme(
     text = element_text(
       family = "Times New Roman",
@@ -1154,421 +956,120 @@ p_publication <- p_heatmap +
     ),
     
     plot.title = element_text(
-      family = "Times New Roman",
       face = "bold",
-      size = 13,
-      color = "black",
+      size = 30,
       hjust = 0.5,
-      margin = margin(b = 12)
+      color = "black"
     ),
     
+    plot.title.position = "plot",
+    
     axis.title.x = element_text(
-      family = "Times New Roman",
-      size = 10,
-      color = "black",
-      margin = margin(t = 12)
+      size = 22,
+      margin = margin(t = 22)
     ),
     
     axis.title.y = element_text(
-      family = "Times New Roman",
-      size = 10,
-      color = "black",
-      margin = margin(r = 8)
+      size = 22,
+      margin = margin(r = 10)
     ),
     
     axis.text.x = element_text(
-      family = "Times New Roman",
-      size = 9,
-      color = "black",
-      angle = 30,
+      size = 22,
+      angle = 25,
       hjust = 1,
       vjust = 1,
       lineheight = 1.05
     ),
     
     axis.text.y = element_text(
-      family = "Times New Roman",
-      size = 9,
-      color = "black"
+      size = 22
     ),
     
-    legend.title = element_text(
-      family = "Times New Roman",
-      size = 10,
-      color = "black"
-    ),
+    legend.title = element_text(size = 22),
+    legend.text = element_text(size = 19),
     
-    legend.text = element_text(
-      family = "Times New Roman",
-      size = 9,
-      color = "black"
-    ),
+    legend.position = "right",
     
     panel.grid = element_blank(),
-    legend.position = "right",
+    
+    panel.background = element_rect(
+      fill = "white",
+      color = NA
+    ),
+    
+    plot.background = element_rect(
+      fill = "white",
+      color = NA
+    ),
+    
     plot.margin = margin(12, 18, 18, 12)
   )
 
-# پیش‌نمایش شکل
+# ------------------------------------------------------------
+# 5. Display the final English heatmap
+# ------------------------------------------------------------
+
 print(p_publication)
 
-# مسیر ذخیره
-output_dir <- "C:/Users/2024/Documents"
+# ------------------------------------------------------------
+# 6. Save publication files in project folder
+# ------------------------------------------------------------
 
-# خروجی PDF
-ggsave(
-  filename = file.path(
-    output_dir,
-    "Stakeholder_Perception_Gap_Heatmap_Readable.pdf"
-  ),
-  plot = p_publication,
-  device = grDevices::pdf,
-  width = 18,
-  height = 12,
-  units = "cm",
-  bg = "white"
+output_dir <- file.path(getwd(), "figures")
+
+dir.create(
+  output_dir,
+  recursive = TRUE,
+  showWarnings = FALSE
 )
 
-# خروجی TIFF با وضوح 600 dpi
+# PNG - 300 dpi
 ggsave(
   filename = file.path(
     output_dir,
-    "Stakeholder_Perception_Gap_Heatmap_Readable.tiff"
-  ),
-  plot = p_publication,
-  device = ragg::agg_tiff,
-  width = 18,
-  height = 12,
-  units = "cm",
-  dpi = 600,
-  compression = "lzw",
-  background = "white"
-)
-
-# خروجی PNG با وضوح 300 dpi
-ggsave(
-  filename = file.path(
-    output_dir,
-    "Stakeholder_Perception_Gap_Heatmap_Readable.png"
+    "Stakeholder_Perception_Gap_Heatmap.png"
   ),
   plot = p_publication,
   device = ragg::agg_png,
-  width = 2400,
-  height = 1600,
-  units = "px",
+  width = 16.38,
+  height = 9.20,
+  units = "in",
   dpi = 300,
   background = "white"
 )
 
-# تأیید وجود فایل‌ها
-file.exists(file.path(
-  output_dir,
-  "Stakeholder_Perception_Gap_Heatmap_Readable.pdf"
-))
-
-file.exists(file.path(
-  output_dir,
-  "Stakeholder_Perception_Gap_Heatmap_Readable.tiff"
-))
-
-file.exists(file.path(
-  output_dir,
-  "Stakeholder_Perception_Gap_Heatmap_Readable.png"
-))
-________________________________________
-
-# ============================================================
-# Publication-ready stakeholder perception-gap heatmap
-# Source: Supplementary_S2_Final_96_Pairwise_Comparisons.xlsx
-# Statistics and Bonferroni decisions are read from source data.
-# ============================================================
-
-# 1. Install missing packages
-packages <- c("readxl", "dplyr", "ggplot2", "viridis", "tibble")
-
-missing_packages <- packages[
-  !vapply(packages, requireNamespace, logical(1), quietly = TRUE)
-]
-
-if (length(missing_packages) > 0) {
-  install.packages(missing_packages)
-}
-
-library(readxl)
-library(dplyr)
-library(ggplot2)
-library(viridis)
-library(tibble)
-
-# 2. Select the original Excel file
-file_path <- file.choose()
-
-raw <- read_excel(
-  path = file_path,
-  sheet = "96 مقایسه زوجی"
-)
-
-# 3. Check that the required columns exist
-required_cols <- c(
-  "کد تعارض",
-  "گروه 1",
-  "گروه 2",
-  "اندازه اثر r",
-  "نتیجه بونفرونی (α=0.0083)"
-)
-
-missing_cols <- setdiff(required_cols, names(raw))
-
-if (length(missing_cols) > 0) {
-  stop(
-    "Required columns not found: ",
-    paste(missing_cols, collapse = ", ")
-  )
-}
-
-# 4. Define the exact intended comparison order
-# L = Local residents
-# E = Government experts
-# N = NGO members
-# A = Academics / researchers
-
-pair_levels <- c("L-E", "L-N", "L-A", "E-N", "E-A", "N-A")
-
-pair_labels <- c(
-  "Local residents vs.\nGovernment experts",
-  "Local residents vs.\nNGO members",
-  "Local residents vs.\nAcademics",
-  "Government experts vs.\nNGO members",
-  "Government experts vs.\nAcademics",
-  "NGO members vs.\nAcademics"
-)
-
-# 5. Prepare plotting data without recalculating statistics
-plot_data <- raw %>%
-  mutate(
-    Group1 = trimws(as.character(`گروه 1`)),
-    Group2 = trimws(as.character(`گروه 2`)),
-    Conflict = as.character(`کد تعارض`),
-    Effect_r = as.numeric(`اندازه اثر r`),
-    Bonferroni_result = trimws(
-      as.character(`نتیجه بونفرونی (α=0.0083)`)
-    ),
-    Pair = paste0(Group1, "-", Group2),
-    Significant = Bonferroni_result == "معنی‌دار"
-  )
-
-# Validate pair codes and source table
-if (!all(plot_data$Pair %in% pair_levels)) {
-  stop(
-    "Unexpected group-pair codes found. ",
-    "Inspect the values in columns 'گروه 1' and 'گروه 2'."
-  )
-}
-
-if (nrow(plot_data) != 96) {
-  warning(
-    "The source sheet has ", nrow(plot_data),
-    " rows rather than the expected 96. Check the input file."
-  )
-}
-
-# Every conflict should have six pairwise comparisons
-pair_counts <- plot_data %>%
-  count(Conflict, name = "n_pairs")
-
-if (any(pair_counts$n_pairs != 6)) {
-  warning("Some conflicts do not have exactly six pairwise comparisons.")
-}
-
-# Explicit factor order: comparisons and conflicts
-conflict_levels <- paste0("C", 1:16)
-
-plot_data <- plot_data %>%
-  mutate(
-    Pair = factor(Pair, levels = pair_levels),
-    Conflict = factor(Conflict, levels = rev(conflict_levels)),
-    # Only significant comparisons receive a coloured tile.
-    Effect_significant = ifelse(Significant, Effect_r, NA_real_),
-    # Preserve the original significance decisions.
-    Cell_label = ifelse(
-      Significant,
-      paste0(sprintf("%.3f", Effect_r), "*"),
-      ""
-    )
-  )
-
-# 6. Create the heatmap
-p_heatmap <- ggplot(
-  plot_data,
-  aes(x = Pair, y = Conflict, fill = Effect_significant)
-) +
-  geom_tile(
-    colour = "white",
-    linewidth = 0.55,
-    width = 0.98,
-    height = 0.96
-  ) +
-  geom_text(
-    aes(label = Cell_label),
-    family = "serif",
-    size = 2.8,
-    colour = "black",
-    na.rm = TRUE
-  ) +
-  scale_x_discrete(
-    limits = pair_levels,
-    labels = setNames(pair_labels, pair_levels),
-    drop = FALSE,
-    expand = expansion(add = 0.02)
-  ) +
-  scale_y_discrete(
-    limits = rev(conflict_levels),
-    drop = FALSE,
-    expand = expansion(add = 0.02)
-  ) +
-  scale_fill_viridis_c(
-    option = "D",
-    direction = 1,
-    na.value = "white",
-    name = "Effect size (r)",
-    limits = range(plot_data$Effect_r[plot_data$Significant], na.rm = TRUE),
-    breaks = scales::pretty_breaks(n = 5)
-  ) +
-  labs(
-    title = "Stakeholder perception-gap effect sizes",
-    subtitle = "Significant pairwise comparisons after Bonferroni correction",
-    x = NULL,
-    y = "Conflict"
-  ) +
-  theme_minimal(base_size = 10, base_family = "serif") +
-  theme(
-    plot.title = element_text(
-      size = 13, face = "bold", colour = "black",
-      hjust = 0, margin = margin(b = 5)
-    ),
-    plot.subtitle = element_text(
-      size = 9, colour = "black",
-      margin = margin(b = 12)
-    ),
-    axis.text.x = element_text(
-      size = 8.5, colour = "black",
-      angle = 25, hjust = 1, vjust = 1,
-      lineheight = 0.95
-    ),
-    axis.text.y = element_text(
-      size = 8.5, colour = "black"
-    ),
-    axis.title.y = element_text(
-      size = 10, colour = "black",
-      margin = margin(r = 8)
-    ),
-    legend.title = element_text(size = 9, colour = "black"),
-    legend.text = element_text(size = 8.5, colour = "black"),
-    legend.key.height = grid::unit(0.9, "cm"),
-    panel.grid = element_blank(),
-    plot.background = element_rect(fill = "white", colour = NA),
-    panel.background = element_rect(fill = "white", colour = NA),
-    plot.margin = margin(12, 16, 12, 12)
-  )
-
-# Show the plot in RStudio
-print(p_heatmap)
-
-# 7. Save a true vector PDF
-# cairo_pdf keeps the plot geometry vector-based.
-# Text may be embedded or represented as glyph outlines,
-# depending on the fonts and system configuration.
+# TIFF - 600 dpi
 ggsave(
-  filename = "Stakeholder_Perception_Gap_Heatmap_Vector.pdf",
-  plot = p_heatmap,
-  device = grDevices::cairo_pdf,
-  width = 22,
-  height = 14,
-  units = "cm",
-  bg = "white",
-  limitsize = FALSE
-)
-
-# 8. Save a high-resolution TIFF for journal submission
-ggsave(
-  filename = "Stakeholder_Perception_Gap_Heatmap_600dpi.tiff",
-  plot = p_heatmap,
-  device = "tiff",
-  width = 22,
-  height = 14,
-  units = "cm",
+  filename = file.path(
+    output_dir,
+    "Stakeholder_Perception_Gap_Heatmap.tiff"
+  ),
+  plot = p_publication,
+  device = ragg::agg_tiff,
+  width = 16.38,
+  height = 9.20,
+  units = "in",
   dpi = 600,
   compression = "lzw",
-  bg = "white",
-  limitsize = FALSE
+  background = "white"
 )
 
-# 9. Export a transparent audit table of plotted values/decisions
-write.csv(
-  plot_data %>%
-    mutate(
-      Pair = as.character(Pair),
-      Conflict = as.character(Conflict)
-    ) %>%
-    select(
-      Conflict, Pair, Effect_r, Bonferroni_result, Significant
-    ),
-  file = "Heatmap_Data_Audit.csv",
-  row.names = FALSE,
-  fileEncoding = "UTF-8"
+# PDF
+ggsave(
+  filename = file.path(output_dir, "Stakeholder_Perception_Gap_Heatmap.png"),
+  plot = p_publication,
+  device = ragg::agg_png,
+  width = 16.38, height = 9.20, units = "in",
+  bg = "white"
 )
 
-message("Finished. Files saved in: ", getwd())
-message("PDF: Stakeholder_Perception_Gap_Heatmap_Vector.pdf")
-message("TIFF: Stakeholder_Perception_Gap_Heatmap_600dpi.tiff")
-message("Audit: Heatmap_Data_Audit.csv")
-________________________________________
-getwd()
-________________________________________
-shell.exec(getwd())
-________________________________________
+# ------------------------------------------------------------
+# 7. Verify exported files
+# ------------------------------------------------------------
 
-# نمایش مسیر فعلی
-getwd()
-
-# جست‌وجوی فایل‌های خروجی در مسیر فعلی
-list.files(
-  getwd(),
-  pattern = "Stakeholder_Perception|Heatmap_Data_Audit",
-  recursive = TRUE,
+print(list.files(
+  output_dir,
+  pattern = "Stakeholder_Perception_Gap_Heatmap",
   full.names = TRUE
-)
-
-# بررسی اینکه فایل‌های مورد انتظار وجود دارند یا نه
-file.exists("Stakeholder_Perception_Gap_Heatmap_Vector.pdf")
-file.exists("Stakeholder_Perception_Gap_Heatmap_600dpi.tiff")
-file.exists("Heatmap_Data_Audit.csv")
-________________________________________
-output_dir <- file.path(
-  path.expand("~"),
-  "Desktop",
-  "Heatmap_Outputs"
-)
-
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-
-output_dir
-________________________________________getwd()
-________________________________________output_dir <- "C:/Users/2024/Documents/Desktop/Heatmap_Outputs"
-
-# بررسی وجود پوشه
-dir.exists(output_dir)
-
-# نمایش فایل‌های داخل پوشه
-list.files(output_dir, full.names = TRUE)
-
-# جست‌وجوی فایل‌های خروجی در Documents
-list.files(
-  "C:/Users/2024/Documents",
-  pattern = "Stakeholder_Perception|Heatmap_Data_Audit",
-  recursive = TRUE,
-  full.names = TRUE
-)
-________________________________________shell.exec(output_dir)	
-________________________________________
-shell.exec("C:/Users/2024/Documents")	________________________________________
+))
